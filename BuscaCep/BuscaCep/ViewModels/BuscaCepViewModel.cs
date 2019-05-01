@@ -87,19 +87,7 @@ namespace BuscaCep.ViewModels
 
         public bool HasCep { get => !string.IsNullOrWhiteSpace(_CEP); }
 
-        private Command _BuscarCommand;
-
-        //public Command BuscarCommand
-        //{
-        //    get 
-        //    {
-        //        if (_BuscarCommand == null)
-        //            _BuscarCommand = new Command(async () => await BuscarCommandExecute());
-
-        //        return _BuscarCommand;
-        //    }
-        //}
-
+        private Command _BuscarCommand;        
         public Command BuscarCommand => _BuscarCommand ?? (_BuscarCommand = new Command(async () => await BuscarCommandExecute(), ()=> IsNotBusy));
 
         async Task BuscarCommandExecute()
@@ -111,6 +99,7 @@ namespace BuscaCep.ViewModels
 
                 IsBusy = true;
                 BuscarCommand.ChangeCanExecute();
+                AdicionarCommand.ChangeCanExecute();
 
                 var result = await ViaCepHttpClient.Current.BuscarCep(_CEPBusca);
 
@@ -124,12 +113,7 @@ namespace BuscaCep.ViewModels
                     UF = result.uf;
                 }
 
-                OnPropertyChanged(nameof(HasCep));
-
-                //if (!string.IsNullOrWhiteSpace(result))
-                //{
-                //    await App.Current.MainPage.DisplayAlert("Resultado", result, "OK");
-                //}
+                OnPropertyChanged(nameof(HasCep));                
             }
             catch (Exception ex)
             {
@@ -139,6 +123,39 @@ namespace BuscaCep.ViewModels
             {
                 IsBusy = false;
                 BuscarCommand.ChangeCanExecute();
+                AdicionarCommand.ChangeCanExecute();
+            }
+        }
+
+        private Command _AdicionarCommand;
+        public Command AdicionarCommand => _AdicionarCommand ?? (_AdicionarCommand = new Command(async () => await AdicionarCommandExecute(), () => IsNotBusy));
+
+        async Task AdicionarCommandExecute()
+        {
+            try
+            {
+                if (IsBusy)
+                    return;
+
+                IsBusy = true;
+                BuscarCommand.ChangeCanExecute();
+                AdicionarCommand.ChangeCanExecute();
+
+                //Avisar a tela de lista de ceps pesquisados que um novo cep deve ser adicionado
+                MessagingCenter.Send(this, "ADICIONAR_CEP");
+
+                await PopAsync();
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+            finally
+            {
+                IsBusy = false;
+                BuscarCommand.ChangeCanExecute();
+                AdicionarCommand.ChangeCanExecute();
             }
         }
     }
