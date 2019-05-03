@@ -1,4 +1,6 @@
-﻿using BuscaCep.Pages;
+﻿using BuscaCep.Data;
+using BuscaCep.Data.Dtos;
+using BuscaCep.Pages;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -15,7 +17,7 @@ namespace BuscaCep.ViewModels
         {
         }
 
-        public ObservableCollection<string> Ceps { get; private set; } = new ObservableCollection<string>();
+        public ObservableCollection<CepDto> Ceps { get; private set; } = new ObservableCollection<CepDto>();
 
         private Command _BuscarCommand;
 
@@ -25,12 +27,11 @@ namespace BuscaCep.ViewModels
         {
             try
             {
-                MessagingCenter.Subscribe<BuscaCepViewModel>(this, "ADICIONAR_CEP", (sender) =>
+                MessagingCenter.Subscribe<BuscaCepViewModel>(this, MessageKeys.CepsAtualizados, (sender) =>
                 {
-                    if (!Ceps.Any(x => x.Equals(sender.CEP)))
-                        Ceps.Add(sender.CEP);
+                    this.RefreshCommand.Execute(null);
 
-                    MessagingCenter.Unsubscribe<BuscaCepViewModel>(this, "ADICIONAR_CEP");
+                    MessagingCenter.Unsubscribe<BuscaCepViewModel>(this, MessageKeys.CepsAtualizados);
                 });
 
                 await PushAsync(new BuscaCepPage());
@@ -41,5 +42,37 @@ namespace BuscaCep.ViewModels
             }
 
         }
+
+        private Command _RefreshCommand;
+
+        public Command RefreshCommand => _RefreshCommand ?? (_RefreshCommand = new Command(async () => await RefreshCommandExecute(), () => IsNotBusy));
+
+        async Task RefreshCommandExecute()
+        {
+            try
+            {
+                await Task.FromResult<object>(null);
+
+                if (IsBusy)
+                    return;
+
+                IsBusy = true;
+                RefreshCommand.ChangeCanExecute();
+
+                Ceps.Clear();
+
+                foreach (var item in DatabaseService.Current.CepGetAll())
+                {
+                    Ceps.Add(item);
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
+        }
+
+
     }
 }

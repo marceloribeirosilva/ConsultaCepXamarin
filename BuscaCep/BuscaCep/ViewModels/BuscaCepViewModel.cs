@@ -1,4 +1,6 @@
 ﻿using BuscaCep.Clients;
+using BuscaCep.Data;
+using BuscaCep.Data.Dtos;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -9,12 +11,13 @@ namespace BuscaCep.ViewModels
 {
     class BuscaCepViewModel :ViewModelBase
     {
+        private CepDto _Cep = null;
+
         public BuscaCepViewModel() :base()
         {
         }
 
         private string _CEPBusca;
-
         public string CEPBusca
         {
             get => _CEPBusca;
@@ -25,67 +28,17 @@ namespace BuscaCep.ViewModels
             }
         }
 
-        private string _CEP;
+        public string CEP { get => _Cep?.Cep; }
 
-        public string CEP
-        {
-            get => _CEP;
-            set
-            {
-                _CEP = value;
-                OnPropertyChanged();
-            }
-        }
+        public string Logradouro { get => _Cep?.Logradouro; }
 
-        private string _Logradouro;
+        public string Bairro { get => _Cep?.Bairro; }
 
-        public string Logradouro
-        {
-            get => _Logradouro;
-            set
-            {
-                _Logradouro = value;
-                OnPropertyChanged();
-            }
-        }
+        public string Localidade { get => _Cep?.Localidade; }
 
-        private string _Bairro;
+        public string UF { get => _Cep?.UF; }
 
-        public string Bairro
-        {
-            get => _Bairro;
-            set
-            {
-                _Bairro = value;
-                OnPropertyChanged();
-            }
-        }
-
-        private string _Localidade;
-
-        public string Localidade
-        {
-            get => _Localidade;
-            set
-            {
-                _Localidade = value;
-                OnPropertyChanged();
-            }
-        }
-
-        private string _UF;
-
-        public string UF
-        {
-            get => _UF;
-            set
-            {
-                _UF = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public bool HasCep { get => !string.IsNullOrWhiteSpace(_CEP); }
+        public bool HasCep { get => _Cep != null; }
 
         private Command _BuscarCommand;        
         public Command BuscarCommand => _BuscarCommand ?? (_BuscarCommand = new Command(async () => await BuscarCommandExecute(), ()=> IsNotBusy));
@@ -103,17 +56,26 @@ namespace BuscaCep.ViewModels
 
                 var result = await ViaCepHttpClient.Current.BuscarCep(_CEPBusca);
 
-                CEP = result.cep;
-
-                if (HasCep)
+                _Cep = new CepDto
                 {
-                    Logradouro = result.logradouro;
-                    Bairro = result.bairro;
-                    Localidade = result.localidade;
-                    UF = result.uf;
-                }
-
-                OnPropertyChanged(nameof(HasCep));                
+                    Bairro = result.bairro,
+                    Cep = result.cep,
+                    Complemento = result.complemento,
+                    GIA = result.gia,
+                    IBGE = result.ibge,
+                    Id = Guid.NewGuid(),
+                    Localidade = result.localidade,
+                    Logradouro = result.logradouro,
+                    UF = result.uf,
+                    Unidade = result.unidade
+                };
+                
+                OnPropertyChanged(nameof(CEP));
+                OnPropertyChanged(nameof(Logradouro));
+                OnPropertyChanged(nameof(Bairro));
+                OnPropertyChanged(nameof(Localidade));
+                OnPropertyChanged(nameof(UF));
+                OnPropertyChanged(nameof(HasCep));
             }
             catch (Exception ex)
             {
@@ -141,8 +103,10 @@ namespace BuscaCep.ViewModels
                 BuscarCommand.ChangeCanExecute();
                 AdicionarCommand.ChangeCanExecute();
 
+                DatabaseService.Current.CepSave(_Cep);
+
                 //Avisar a tela de lista de ceps pesquisados que um novo cep deve ser adicionado
-                MessagingCenter.Send(this, "ADICIONAR_CEP");
+                MessagingCenter.Send(this, MessageKeys.CepsAtualizados);
 
                 await PopAsync();
             }

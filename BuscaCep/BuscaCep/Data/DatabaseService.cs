@@ -1,4 +1,5 @@
-﻿using BuscaCep.Providers;
+﻿using BuscaCep.Data.Dtos;
+using BuscaCep.Providers;
 using SQLite;
 using System;
 using System.Collections.Generic;
@@ -12,12 +13,19 @@ namespace BuscaCep.Data
 
         public static DatabaseService Current { get => _Lazy.Value; }
 
+        private readonly SQLiteConnection _SQLiteConnection;
+
         private DatabaseService()
         {
             var dbPath = Xamarin.Forms.DependencyService.Get<ISQLiteDatabasePathProvider>().GetDatabasePath();
-            _SQLiteConnection = new SQLiteConnection();
+            _SQLiteConnection = new SQLiteConnection(dbPath);
+            _SQLiteConnection.CreateTable<CepDto>();
         }
 
-        private readonly SQLiteConnection _SQLiteConnection;
+        public bool CepSave(CepDto cep) => _SQLiteConnection.InsertOrReplace(cep) > 0;
+
+        public List<CepDto> CepGetAll() => _SQLiteConnection.Table<CepDto>().ToList();
+
+        public CepDto CepGet(Guid id) => _SQLiteConnection.Find<CepDto>(id);
     }
 }

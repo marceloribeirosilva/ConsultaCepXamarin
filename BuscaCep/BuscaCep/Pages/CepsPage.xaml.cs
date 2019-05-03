@@ -12,7 +12,7 @@ namespace BuscaCep.Pages
 {
     public partial class CepsPage : ContentPage
     {
-        
+        private bool _FirstRun = true;
 
         public CepsPage()
         {
@@ -30,6 +30,18 @@ namespace BuscaCep.Pages
 
             //Deselect Item
             ((ListView)sender).SelectedItem = null;
+        }
+
+        protected override void OnAppearing()
+        {
+            if (_FirstRun)
+            {
+                ((CepsViewModel)BindingContext).RefreshCommand.Execute(null);
+                _FirstRun = false;
+            }
+                
+
+            base.OnAppearing();
         }
     }
 }
